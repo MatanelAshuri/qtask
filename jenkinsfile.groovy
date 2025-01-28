@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DOCKERHUB = credentials('dockerhub')
-        APP_NAME = 'websocket-demo'
+        APP_NAME = 'qtask'
         GIT_REF = "${params.GIT_REF}"
         BUILD_VERSION = "${env.BUILD_NUMBER}"
     }
