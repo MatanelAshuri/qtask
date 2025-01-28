@@ -14,7 +14,7 @@ pipeline {
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: params.GIT_REF]],
-                    userRemoteConfigs: [[url: 'https://github.com/MatanelAshuri/secwebsock.git']]
+                    userRemoteConfigs: [[url: 'https://github.com/MatanelAshuri/qtask.git']]
                 ])
             }
         }
