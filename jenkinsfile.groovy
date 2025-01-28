@@ -22,7 +22,7 @@ pipeline {
         stage('Build and Push') {
             steps {
                 script {
-                    def cleanTag = GIT_REF.replaceAll('^refs/(tags|heads)/', '')
+                    def cleanTag = GIT_REF.replaceAll('^(refs/(tags|heads)/|origin/)', '')
                     def imageTag = "${cleanTag}-${BUILD_VERSION}"
                     def imageName = "${DOCKERHUB_USR}/${APP_NAME}"
                     
