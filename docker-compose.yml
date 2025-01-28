@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  nginx:
+    build:
+      context: /secwebsock
+      dockerfile: docker/nginx/Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    network_mode: "host"
+
+    environment:
+      - CERT_PATH=/etc/nginx/certs/task-cert.pem
+      - KEY_PATH=/etc/nginx/certs/task-key.pem
+    depends_on:
+      - apps
+
+  apps:
+    container_name: apps
+    build:
+      context: /secwebsock
+      dockerfile: docker/Dockerfile
+    environment:
+      - NODE_ENV=task
+    network_mode: "host"
+
+    expose:
+      - "3001"

@@ -1,0 +1,77 @@
+const express = require('express');
+const WebSocket = require('ws');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// static files
+app.use(express.static(path.join(__dirname, '../public')));
+
+// iexpress route for main page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// Create the WebSocket server
+const wss = new WebSocket.Server({ port: PORT + 1 }); // WebSocket on 3002
+
+// track client connection times
+const clients = new Map();
+
+wss.on('connection', (ws) => {
+    // record connection start time
+    const connectionStart = Date.now();
+    clients.set(ws, { connectionStart });
+
+    console.log('new connection');
+
+    // Send initial connection message
+    ws.send(JSON.stringify({
+        type: 'connected',
+        message: 'WebSocket connection established'
+    }));
+
+    // ping interval
+    const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            const pingStart = Date.now();
+            ws.send(JSON.stringify({
+                type: 'ping',
+                timestamp: pingStart
+            }));
+        }
+    }, 1000);
+
+    // incoming messages
+    ws.on('message', (message) => {
+        const data = JSON.parse(message);
+        
+        if (data.type === 'pong') {
+            // calc latency
+            const latency = Date.now() - data.timestamp;
+            const uptime = Date.now() - connectionStart;
+            
+            // send update
+            ws.send(JSON.stringify({
+                type: 'status',
+                latency,
+                uptime,
+                timestamp: Date.now()
+            }));
+        }
+    });
+
+    // client disconnect
+    ws.on('close', () => {
+        clearInterval(pingInterval);
+        clients.delete(ws);
+        console.log('client disconnected');
+    });
+});
+
+// Start the HTTP server
+app.listen(PORT, () => {
+    console.log(`App2 HTTP server running on http://localhost:${PORT}`);
+    console.log(`WebSocket server running on ws://localhost:${PORT + 1}`);
+});

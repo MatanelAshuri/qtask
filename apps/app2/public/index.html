@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+   <title>WebSocket Connection Monitor</title>
+   <style>
+       body {
+           font-family: monospace;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           min-height: 100vh;
+           margin: 0;
+           background-color: #1a1a1a;
+           color: #00ff00;
+       }
+       .monitor {
+           text-align: center;
+           padding: 20px;
+           border: 2px solid #00ff00;
+           border-radius: 10px;
+           background-color: #000;
+       }
+       .status {
+           font-size: 2em;
+           margin: 10px 0;
+       }
+       .metrics {
+           font-size: 1.2em;
+           margin: 10px 0;
+       }
+       .debug {
+           font-size: 0.8em;
+           color: #888;
+           margin-top: 20px;
+           text-align: left;
+       }
+   </style>
+</head>
+<body>
+   <div class="monitor">
+       <h2>WebSocket Status Monitor</h2>
+       <div id="connectionStatus" class="status">Connecting...</div>
+       <div id="uptimeDisplay" class="metrics">Uptime: 0s</div>
+       <div id="latencyDisplay" class="metrics">Latency: 0ms</div>
+       <div id="debugInfo" class="debug"></div>
+   </div>
+
+   <script>
+       const debugInfo = document.getElementById('debugInfo');
+       const statusElement = document.getElementById('connectionStatus');
+       const uptimeElement = document.getElementById('uptimeDisplay');
+       const latencyElement = document.getElementById('latencyDisplay');
+
+       function log(message) {
+           console.log(message);
+           debugInfo.innerHTML += `${new Date().toISOString()}: ${message}<br>`;
+       }
+
+       function connectWebSocket() {
+           log('Starting WebSocket connection process...');
+
+           const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+           const wsUrl = `${wsProtocol}//${window.location.host}/app2/ws`;
+           
+           log(`Attempting connection to: ${wsUrl}`);
+           log(`Page URL: ${window.location.href}`);
+           log(`Protocol: ${wsProtocol}`);
+
+           const ws = new WebSocket(wsUrl);
+           
+           ws.onopen = () => {
+               log('WebSocket connection established');
+               log(`Connection secure: ${ws.url.startsWith('wss://')}`);
+               statusElement.textContent = 'Connected';
+               statusElement.style.color = '#00ff00';
+               
+               ws.send(JSON.stringify({
+                   type: 'hello',
+                   timestamp: Date.now()
+               }));
+           };
+
+           ws.onerror = (error) => {
+               log(`WebSocket error occurred: ${error.type}`);
+               log(`Error details: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`);
+               statusElement.textContent = 'Error';
+               statusElement.style.color = '#ff0000';
+           };
+
+           ws.onmessage = (event) => {
+               log(`Received message: ${event.data}`);
+               try {
+                   const data = JSON.parse(event.data);
+                   switch (data.type) {
+                       case 'ping':
+                           ws.send(JSON.stringify({
+                               type: 'pong',
+                               timestamp: data.timestamp
+                           }));
+                           break;
+                       case 'status':
+                           uptimeElement.textContent = `Uptime: ${Math.floor(data.uptime/1000)}s`;
+                           latencyElement.textContent = `Latency: ${data.latency}ms`;
+                           break;
+                       case 'connected':
+                           log(`Server confirmed: ${data.message}`);
+                           break;
+                   }
+               } catch (error) {
+                   log(`Error processing message: ${error.message}`);
+               }
+           };
+
+           ws.onclose = (event) => {
+               log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
+               statusElement.textContent = 'Disconnected';
+               statusElement.style.color = '#ff0000';
+               setTimeout(connectWebSocket, 5000);
+           };
+
+           window.addEventListener('beforeunload', () => {
+               log('Page unloading, closing WebSocket');
+               ws.close();
+           });
+       }
+
+       connectWebSocket();
+   </script>
+</body>
+</html>

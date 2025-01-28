@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connection Monitor</title>
+    <style>
+        body {
+            font-family: monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #00ff00;
+        }
+        .monitor {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            background-color: #000;
+        }
+        .status {
+            font-size: 2em;
+            margin: 10px 0;
+        }
+        .metrics {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="monitor">
+        <h2>WebSocket Monitor</h2>
+        <div id="connectionStatus" class="status">connecting...</div>
+        <div id="uptimeDisplay" class="metrics">uptime: 0s</div>
+        <div id="latencyDisplay" class="metrics">latency: 0ms</div>
+    </div>
+
+    <script>
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsPort = parseInt(window.location.port) + 1;
+        const ws = new WebSocket(`${wsProtocol}//${window.location.hostname}:${wsPort}`);
+        
+        const statusElement = document.getElementById('connectionStatus');
+        const uptimeElement = document.getElementById('uptimeDisplay');
+        const latencyElement = document.getElementById('latencyDisplay');
+
+        ws.onopen = () => {
+            statusElement.textContent = 'connected';
+            statusElement.style.color = '#00ff00';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            switch(data.type) {
+                case 'ping':
+                    ws.send(JSON.stringify({
+                        type: 'pong',
+                        timestamp: data.timestamp
+                    }));
+                    break;
+                    
+                case 'status':
+                    uptimeElement.textContent = `uptime: ${Math.floor(data.uptime/1000)}s`;
+                    latencyElement.textContent = lLatency: ${data.latency}ms`;
+                    break;
+            }
+        };
+
+        ws.onclose = () => {
+            statusElement.textContent = 'disconnected';
+            statusElement.style.color = '#ff0000';
+        };
+    </script>
+</body>
+</html>
